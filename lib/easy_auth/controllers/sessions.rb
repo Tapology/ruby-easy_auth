@@ -10,19 +10,26 @@ module EasyAuth::Controllers::Sessions
       session[:identity_id] = @identity.id
       after_successful_sign_in
     else
-      @identity = EasyAuth.find_identity_model(params).new(params[params[:identity]])
+      @identity = EasyAuth.find_identity_model(all_params).new(all_params[all_params[:identity]])
       after_failed_sign_in
     end
   rescue AbstractController::DoubleRenderError
   end
 
+  # Stopgap solution to ensure we always have a hash,
+  # instead of an ActionController::Parameters object
+  # which is new in Rails 5+
+  def all_params
+    params.permit!.to_h
+  end
+  
   def destroy
     session.delete(:identity_id)
     after_sign_out
   end
 
   def after_with_or_default(method_name)
-    send("#{method_name}_with_#{params[:identity]}") || send("#{method_name}_default")
+    send("#{method_name}_with_#{all_params[:identity]}") || send("#{method_name}_default")
   end
 
   def after_successful_sign_in
